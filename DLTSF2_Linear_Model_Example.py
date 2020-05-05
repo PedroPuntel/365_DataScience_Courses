@@ -89,13 +89,13 @@ model_hist["fit"] = net.fit(train_data,
 
 # Checking for over/underfitting
 plotter = tf_docs.plots.HistoryPlotter(smoothing_std=2)
+plt.subplot(1,2,1)
 plotter.plot(model_hist, metric="mse")
 plt.title("Deep Learning Model - Loss Function Evaluation")
 plt.xlabel("Epochs")
-plt.ylabel("Loss Function")
-plt.show()
-
+plt.ylabel("Mean Squared Error")
 plotter = tf_docs.plots.HistoryPlotter(smoothing_std=2)
+plt.subplot(1,2,2)
 plotter.plot(model_hist, metric="mse")
 plt.title("Deep Learning Model - Loss Function Evaluation")
 plt.xlabel("Epochs")
@@ -111,7 +111,7 @@ ols.fit(train_data, train_targets)
 #%% Comparing both models
 
 # Model evaluation metrics
-dl_loss, dl_mse, dl_mae = model_hist["fit"].model.evaluate(test_data, test_targets, verbose=2)
+dl_loss, dl_mse, dl_mae = model_hist["fit"].model.evaluate(test_data, test_targets, verbose=0)
 print("Deep Learning Model MSE: {}".format(round(dl_mse, 5)))
 print("Deep Learning Model MAE: {}".format(round(dl_mae, 5)))
 
@@ -122,12 +122,12 @@ print("Traditional OLS Model MAE: {}".format(round(mean_absolute_error(test_targ
 
 # Comparing predictions on both models
 dl_pred = model_hist["fit"].model.predict(test_data, use_multiprocessing=True).flatten()
+plt.subplot(1,2,1)
 plt.scatter(dl_pred, test_targets, c="green", marker="o", alpha=0.7)
 plt.title("Deep Learning Model - Predicted x Targets")
 plt.xlabel("Predicted")
 plt.ylabel("Targets")
-plt.show()
-
+plt.subplot(1,2,2)
 plt.scatter(ols_pred, test_targets, c="blue", marker="o", alpha=0.7)
 plt.title("OLS Regression - Predicted x Targets")
 plt.xlabel("Predicted")
@@ -137,11 +137,13 @@ plt.show()
 # Checking normality assumption on both models
 from scipy.stats import shapiro
 dl_resid = (test_targets - dl_pred)
+ols_resid = (test_targets - ols_pred)
+plt.subplot(1,2,1)
 sns.distplot(dl_resid, color="orange")
+plt.title("Deep Learning Regression - Residuals")
+plt.subplot(1,2,2)
+sns.distplot(ols_resid, color="red")
+plt.title("OLS Regression - Residuals")
 plt.show()
 shapiro(dl_resid)
-
-ols_resid = (test_targets - ols_pred)
-sns.distplot(ols_resid, color="red")
-plt.show()
 shapiro(ols_resid)
