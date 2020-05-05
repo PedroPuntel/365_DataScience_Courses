@@ -20,8 +20,8 @@ sns.set() # overrides matplotlib's plot style
 #################################################################
 # Linear Regression (Example 1) - Predicting GPA using SAT scores
 #################################################################
-filename = "D:\Python\Courses\365_Data_Science\Advanced Statistcal Methods in Python\Data\sat_gpa.csv"
-df = pd.read_csv(filename)
+import myconfigs
+df = pd.read_csv(myconfigs.asmp_1)
 df.head()
 df.describe()
 
@@ -53,9 +53,7 @@ plt.show()
 # Introduction of a Dummy variable such that:
 # . Yes represents >= 75% attendance
 # . No represents < 75% attendance
-
-filename = "D:/Python/Courses/365_Data_Science/Advanced Statistcal Methods in Python/Data/sat_gpa_attd.csv"
-df2 = pd.read_csv(filename)
+df2 = pd.read_csv(myconfigs.asmp_2)
 df2.head()
 
 df2["Attendance"] = df2["Attendance"].map({"Yes":1, "No":0})
@@ -119,8 +117,7 @@ plt.show()
 # . Autocorrelation - The errors of them model are uncorrelated with each other
 # . Multicolinearity - The predictor variables are not perfectly correlated
 
-filename = "D:/Python/Courses/365_Data_Science/Advanced Statistcal Methods in Python/Data/cars_dataset.csv"
-raw_data = pd.read_csv(filename)
+raw_data = pd.read_csv(myconfigs.asmp_3)
 raw_data.rename(columns={"Engine Type":"EngineTyp"}, inplace=True)
 raw_data.head()
 raw_data.columns
@@ -302,8 +299,7 @@ predict_summary.describe()
 # . Participating in previous marketing campain, increases in 354% the odds of a client (...)
 # . Unit increase in DR increases increases in 51% the odds of a client (...)
 
-filename = "D:/Python/Courses/365_Data_Science/Advanced Statistcal Methods in Python/Data/bank_data.csv"
-bank_data = pd.read_csv(filename)
+bank_data = pd.read_csv(myconfigs.asmp_4)
 bank_data.shape
 bank_data.head()
 
