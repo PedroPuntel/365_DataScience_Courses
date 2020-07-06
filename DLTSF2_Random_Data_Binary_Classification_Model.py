@@ -1,9 +1,27 @@
+# Date: 19/05/2020                                                   
+# Author: Pedro H. Puntel                                            
+# Email: pedro.puntel@gmail.com                                      
+# Topic: 365 Data Science Course - Deep Learning With Tensorflow 2.0 
+# Ecoding: UTF-8                                                     
 
-#%% Binary Classification Loss Functions
+# References:
+# . https://machinelearningmastery.com/how-to-choose-loss-functions-when-training-deep-learning-neural-networks/
+# . https://michaelblogscode.wordpress.com/2017/12/20/visualizing-model-performance-statistics-with-tensorflow/
+# . https://www.ritchieng.com/machine-learning-evaluate-classification-model/
+
+# Modules
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import tensorflow_docs as tfdocs
+import tensorflow_docs.plots
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(font_scale=1.4)
 
 # Random data generation
 from sklearn.datasets import make_circles
-inputs, targets = make_circles(n_samples=10000, shuffle=True, noise=0.1, random_state=42)
+inputs, targets = make_circles(n_samples=10000, shuffle=True, noise=0.05, random_state=42)
 
 # Data preview
 for i in range(2):
@@ -20,6 +38,7 @@ plt.show()
 # . Calculates the average difference between the actual and predicted probabilty
 #   distribution for predicting class 1. A perfect cross-entropy value is 0.
 
+from sklearn.model_selection import train_test_split
 x_test, x_train, y_test, y_train = train_test_split(inputs, targets, test_size=0.8, random_state=42)
 
 epochs = 1000
@@ -109,37 +128,38 @@ sqr_hinge_model = sqr_hinge_net.fit(x=x_train,
                                     callbacks=[tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)])
 
 # Comparing the learning curves of the models
-plt.plot(bc_model.history['loss'], label='Train MSE', c="blue")
-plt.plot(bc_model.history['val_loss'], label='Test MSE', c="orange")
+plt.plot(bc_model.history['loss'], label='Train Loss', c="blue")
+plt.plot(bc_model.history['val_loss'], label='Test Loss', c="orange")
 plt.title("Binary Cross-Entropy Model")
 plt.xlabel("Epochs")
 plt.ylabel("BCE Loss")
 plt.legend()
 plt.show()
 
-plt.plot(hinge_model.history['loss'], label='Train MSLE', c="purple")
-plt.plot(hinge_model.history['val_loss'], label='Test MSLE', c="orange")
-plt.title("Hinge Model")
+plt.plot(hinge_model.history['loss'], label='Train Loss', c="purple")
+plt.plot(hinge_model.history['val_loss'], label='Test Loss', c="orange")
+plt.title("Hinge Loss Model")
 plt.xlabel("Epochs")
 plt.ylabel("Hinge Loss")
 plt.legend()
 plt.show()
 
-plt.plot(sqr_hinge_model.history['loss'], label='Train MAE', c="green")
-plt.plot(sqr_hinge_model.history['val_loss'], label='Test MAE', c="orange")
-plt.title("Squared Hinge Model")
+plt.plot(sqr_hinge_model.history['loss'], label='Train Loss', c="green")
+plt.plot(sqr_hinge_model.history['val_loss'], label='Test Lss', c="orange")
+plt.title("Squared Hinge Loss Model")
 plt.xlabel("Epochs")
 plt.ylabel("Square Hinge Loss")
 plt.legend()
 plt.show()
 
-# Comparing evaluation metrics throughout the models
+## Update!!!
+# Funcion responsible for computing evaluation metrics
 def compute_metrics(model, test_data, test_targets):
   """ 
   -----------
   Description
   -----------
-    Given an classification model, computes various model evaluation metrics.
+    Given an Binary classification model, computes various model evaluation metrics.
 
   ----------
   Parameters
@@ -149,37 +169,45 @@ def compute_metrics(model, test_data, test_targets):
     . test_targets: Model test targets.
 
   -------
-  Returns
+  Outputs
   -------
     . predictions: Model predictions.
     . baseline_model: Associated Null-Accuracy "dumb" model.
     . confusion_matrix: Confusion-Matrix plot of the model.
     . metrics_df: Dataframe containing all the computed evalutaions metrics.
-    . ROC_plot: The ROC plot of the model.
-    . AUC_plot: The AUC plot of the model.
   """
 
-  predictions = model.predict(test_data, verbose=0, use_multiprocessing=True).flatten()
-  null_accuracy_model = np.count_nonzero(test_targets)/len(test_targets)
-  accuracy = 
-  true_positives = np.count_nonzero((predictions * ))
-  true_negatives
-  false_negatives
-  false_positives
-  f1_score
+  predictions = model.model.predict(test_data, verbose=0, use_multiprocessing=True)
+  
+  ## Null model = accuracy that would be achieved by predicting the MOST FREQUENT CLASS!!
+  if any(test_targets == -1):
+    baseline_model = len(test_targets[np.where(test_targets == -1)])/len(test_targets)
+    test_targets[np.where(test_targets == -1)] = 0 # relabel the data for easier manipulation
+  else:
+    baseline_model = len(test_targets[np.where(test_targets == 0)])/len(test_targets)
+  
+  tp = np.count_nonzero(predictions * test_targets)
+  tn = np.count_nonzero(((predictions-1)*(test_targets-1)))
+  fp = np.count_nonzero(predictions * (test_targets-1))
+  fn = np.count_nonzero((predictions-1)*test_targets)
+  _, accuracy = model.model.evaluate(test_data, test_targets, verbose=0)
+  precision = np.divide(tp, (tp + fp))
+  recall = np.divide(tp, (tp + fn))
+  f1_score = np.divide((2*precision*recall), (precision + recall))
+  metrics_df = pd.DataFrame(np.reshape([accuracy, precision, recall, f1_score],(1,4)),
+                            columns=["Accuracy","Precision","Recall","F1"])
 
-  # True positives = 
-  tp = 
-  tn = np.count_nonzero(((predict_labels-1)*(true_labels-1)))
+  confusion_matrix = pd.DataFrame(np.reshape([tp, fp, fn, tn],(2,2)))
+  confusion_matrix = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:, np.newaxis]
+  sns.heatmap(confusion_matrix, annot=True, annot_kws={"size":16}, cmap=plt.cm.Blues)
+  plt.title("Confusion Matrix Plot")
+  plt.xlabel("Predicted Labels")
+  plt.ylabel("True Labels")
+  plt.show()
 
-bc_pred = bc_model.predict(x_test, verbose=0, use_multiprocessing=True).flatten()
- 
-    FP = tf.count_nonzero(prediction_integer * (labels - 1),
-        name="False_Positives", dtype=tf.int32)
- 
-    FN = tf.count_nonzero((prediction_integer - 1) * labels,
-        name="False_Negatives", dtype=tf.int32)
+  return predictions, baseline_model, metrics_df
 
-
-
-#%% Multi-class Classification Loss Functions
+# Comparing the models
+bc_pred, bc_dumb, bc_metrics = compute_metrics(bc_model, x_test, y_test)
+hinge_pred, hinge_dumb, hinge_metrics = compute_metrics(hinge_model, x_test, hinge_y_test)
+sqrhinge_pred, sqrhinge_dumb, sqrhinge_metrics = compute_metrics(sqr_hinge_model, x_test, hinge_y_test)

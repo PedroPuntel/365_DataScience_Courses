@@ -19,7 +19,7 @@ import tensorflow_docs.plots
 import tensorflow_docs.modeling
 sns.set()                                                    
 
-#%% (Modified) Tensorflow Deep Learning Linear Regression Model Example
+#%% Tensorflow Deep Learning Linear Regression Model Example
 
 # data_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
 # data_path = tf.keras.utils.get_file("auto-mpg.data", data_url) 
@@ -37,30 +37,29 @@ df = df.dropna()
 df["Origin"] = df["Origin"].map({1:"USA",2:"Europe",3:"Japan"})
 df = pd.get_dummies(df, prefix="", prefix_sep="")
 
+# Inspecting feature relationships
+sns.pairplot(df[["MPG","Cylinders","Displacement","Weight","Acceleration"]], diag_kind="kde")
+plt.show()
+
 # Splitting Train/Test data
 train_data = df.sample(frac=0.8, random_state=42)
 train_targets = train_data.pop("MPG")
 test_data = df.drop(train_data.index)
 test_targets = test_data.pop("MPG")
 
-# Inspecting feature relationships
-sns.pairplot(train_data[["MPG","Cylinders","Displacement","Weight","Acceleration"]], diag_kind="kde")
-plt.show()
-
 # Feature scaling
 from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
-train_data = scaler.fit_transform(train_data[features[1:-1]])
+train_data = scaler.fit_transform(train_data)
 train_targets = scaler.fit_transform(train_targets.values.reshape(-1,1))
-test_data = scaler.fit_transform(test_data[features[1:-1]])
+test_data = scaler.fit_transform(test_data)
 test_targets = scaler.fit_transform(test_targets.values.reshape(-1,1))
 
 # Hyperparametrs
-model_hist = {}
-epochs = 100
-hidden_units = 32
+epochs = 1000
+hidden_units = 20 
 loss_function = "mse"
-learning_rate = 0.1
+learning_rate = 0.01
 optimizer = tf.keras.optimizers.Adam(learning_rate)
 
 # Model structure
@@ -70,80 +69,58 @@ net = tf.keras.Sequential([
                           use_bias=True,
                           kernel_initializer="glorot_uniform",
                           bias_initializer="zeros",
-                          input_shape=[len(pd.DataFrame(train_data).keys())]),
-    tf.keras.layers.Dense(units=hidden_units,
-                          activation="relu"),
-    tf.keras.layers.Dense(1)])
+                          input_shape=[train_data.shape[1]]),
+    tf.keras.layers.Dense(units=1, activation="linear")])
 
 # Model Optimizer                       
 net.compile(loss=loss_function, optimizer=optimizer, metrics=["mse", "mae"])
 
 # Model Training
-model_hist["fit"] = net.fit(train_data,
-                            train_targets,
-                            epochs=epochs,
-                            validation_split=0.2,
-                            verbose=1,
-                            use_multiprocessing=True,
-                            callbacks=[tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)])
+model = net.fit(train_data,
+                train_targets,
+                epochs=epochs,
+                validation_data=(test_data, test_targets),
+                verbose=1,
+                use_multiprocessing=True,
+                callbacks=[tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)])
 
-# Checking for over/underfitting
-plotter = tf_docs.plots.HistoryPlotter(smoothing_std=2)
+# Model summary 
+model.model.summary()
+
+# Checking for overfitting or underfitting
 plt.subplot(1,2,1)
-plotter.plot(model_hist, metric="mse")
+plt.plot(model.history["loss"], c="blue", label="Train MSE")
+plt.plot(model.history["val_loss"], c="orange", label="Test MSE")
 plt.title("Deep Learning Model - Loss Function Evaluation")
+plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Mean Squared Error")
-plotter = tf_docs.plots.HistoryPlotter(smoothing_std=2)
 plt.subplot(1,2,2)
-plotter.plot(model_hist, metric="mse")
+plt.plot(model.history["mae"], c="green", label="Train MAE")
+plt.plot(model.history["val_mae"], c="red", label="Test MAE")
 plt.title("Deep Learning Model - Loss Function Evaluation")
+plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Mean Absolut Error")
 plt.show()
 
-#%% Fitting traditional OLS regression
-
-from sklearn.linear_model import LinearRegression
-ols = LinearRegression(copy_X=True, fit_intercept=True, n_jobs=4, normalize=False)
-ols.fit(train_data, train_targets)
-
-#%% Comparing both models
-
 # Model evaluation metrics
-dl_loss, dl_mse, dl_mae = model_hist["fit"].model.evaluate(test_data, test_targets, verbose=0)
-print("Deep Learning Model MSE: {}".format(round(dl_mse, 5)))
-print("Deep Learning Model MAE: {}".format(round(dl_mae, 5)))
+dl_loss, dl_mse, dl_mae = model.model.evaluate(test_data, test_targets, verbose=0)
+print("Model Mean Squared Error: {}".format(round(dl_mse, 5)))
+print("Model Mean Absolut Error: {}".format(round(dl_mae, 5)))
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-ols_pred = ols.predict(test_data)
-print("Traditional OLS Model MSE: {}".format(round(mean_squared_error(test_targets, ols_pred),5)))
-print("Traditional OLS Model MAE: {}".format(round(mean_absolute_error(test_targets, ols_pred),5)))
-
-# Comparing predictions on both models
-dl_pred = model_hist["fit"].model.predict(test_data, use_multiprocessing=True).flatten()
-plt.subplot(1,2,1)
+# Comparing predictions with targets
+dl_pred = model.model.predict(test_data, use_multiprocessing=True).flatten()
 plt.scatter(dl_pred, test_targets, c="green", marker="o", alpha=0.7)
 plt.title("Deep Learning Model - Predicted x Targets")
 plt.xlabel("Predicted")
 plt.ylabel("Targets")
-plt.subplot(1,2,2)
-plt.scatter(ols_pred, test_targets, c="blue", marker="o", alpha=0.7)
-plt.title("OLS Regression - Predicted x Targets")
-plt.xlabel("Predicted")
-plt.ylabel("Targets")
 plt.show()
 
-# Checking normality assumption on both models
+# Checking normality assumption
 from scipy.stats import shapiro
 dl_resid = (test_targets - dl_pred)
-ols_resid = (test_targets - ols_pred)
-plt.subplot(1,2,1)
-sns.distplot(dl_resid, color="orange")
-plt.title("Deep Learning Regression - Residuals")
-plt.subplot(1,2,2)
-sns.distplot(ols_resid, color="red")
-plt.title("OLS Regression - Residuals")
+sns.distplot(dl_resid, color="purple")
+plt.title("Deep Learning Regression Model - Residuals")
 plt.show()
 shapiro(dl_resid)
-shapiro(ols_resid)
